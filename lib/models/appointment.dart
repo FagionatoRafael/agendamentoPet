@@ -9,6 +9,8 @@ class Appointment {
   final DateTime date;
   final String notes;
   final DateTime createdAt;
+  final String groomingType;
+  final double totalPrice;
 
   Appointment({
     required this.id,
@@ -19,6 +21,8 @@ class Appointment {
     required this.date,
     this.notes = '',
     required this.createdAt,
+    this.groomingType = '',
+    this.totalPrice = 0.0,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,6 +34,8 @@ class Appointment {
       'date': date,
       'notes': notes,
       'createdAt': createdAt,
+      'groomingType': groomingType,
+      'totalPrice': totalPrice,
     };
   }
 
@@ -43,6 +49,8 @@ class Appointment {
       date: (json['date'] as Timestamp).toDate(),
       notes: json['notes'] ?? '',
       createdAt: (json['createdAt'] as Timestamp).toDate(),
+      groomingType: json['groomingType'] ?? '',
+      totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
     );
   }
 
@@ -55,6 +63,8 @@ class Appointment {
     DateTime? date,
     String? notes,
     DateTime? createdAt,
+    String? groomingType,
+    double? totalPrice,
   }) {
     return Appointment(
       id: id ?? this.id,
@@ -65,6 +75,46 @@ class Appointment {
       date: date ?? this.date,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      groomingType: groomingType ?? this.groomingType,
+      totalPrice: totalPrice ?? this.totalPrice,
     );
+  }
+
+  // Método para calcular o preço
+  static double calculatePrice(bool bath, bool grooming, String groomingType) {
+    if (!bath && !grooming) return 0.0;
+
+    if (bath && !grooming) return 60.0;
+
+    if (!bath && grooming) return 60.0;
+
+    if (bath && grooming) {
+      switch (groomingType) {
+        case 'higienica':
+          return 60.0; // Banho + Tosa Higiênica
+        case 'maquina':
+          return 80.0; // Banho + Tosa na Máquina
+        case 'tesoura':
+          return 120.0; // Banho + Tosa na Tesoura
+        default:
+          return 80.0; // Valor padrão (maquina)
+      }
+    }
+
+    return 0.0;
+  }
+
+  // Método para obter o nome do tipo de tosa
+  static String getGroomingTypeName(String type) {
+    switch (type) {
+      case 'higienica':
+        return 'Tosa Higiênica';
+      case 'maquina':
+        return 'Tosa na Máquina';
+      case 'tesoura':
+        return 'Tosa na Tesoura';
+      default:
+        return '';
+    }
   }
 }

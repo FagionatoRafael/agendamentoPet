@@ -87,4 +87,27 @@ class AppointmentProvider extends ChangeNotifier {
       return false;
     }
   }
+  Future<void> refreshAppointments() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _service.getAppointments().first.then((appointments) {
+        _appointments = appointments;
+        _isLoading = false;
+        _error = null;
+        notifyListeners();
+      }).catchError((error) {
+        _error = error.toString();
+        _isLoading = false;
+        notifyListeners();
+        throw Exception('Falha ao atualizar: $error');
+      });
+    } catch (e) {
+      // Re-lança para tratamento na UI
+      rethrow;
+    }
+  }
+
 }

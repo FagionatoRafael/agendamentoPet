@@ -26,7 +26,7 @@ class AppointmentCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                   child: Text(
                     appointment.tutorName[0].toUpperCase(),
                     style: TextStyle(
@@ -51,6 +51,24 @@ class AppointmentCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Mostra o preço no canto
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Text(
+                    'R\$ ${appointment.totalPrice.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     const PopupMenuItem(
@@ -97,7 +115,7 @@ class AppointmentCard extends StatelessWidget {
                   ),
                 if (appointment.grooming)
                   Chip(
-                    label: const Text('Tosa'),
+                    label: Text(Appointment.getGroomingTypeName(appointment.groomingType)),
                     backgroundColor: Colors.green.shade50,
                     labelStyle: TextStyle(color: Colors.green.shade700),
                     avatar: Icon(Icons.cut, size: 16, color: Colors.green.shade700),

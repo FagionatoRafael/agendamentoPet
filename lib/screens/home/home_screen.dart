@@ -14,6 +14,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -26,11 +28,51 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _handleSearch(String query) {
     context.read<AppointmentProvider>().searchAppointments(query);
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      if (_searchController.text.isNotEmpty) {
+        _searchController.clear();
+        _handleSearch('');
+      }
+
+      await context.read<AppointmentProvider>().refreshAppointments();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Agendamentos atualizados!'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleDelete(String id) async {
@@ -69,6 +111,20 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Agendamentos'),
         actions: [
+          // Botão de refresh manual (opcional)
+          IconButton(
+            icon: _isRefreshing
+                ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+                : const Icon(Icons.refresh),
+            onPressed: _isRefreshing ? null : _handleRefresh,
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -108,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Consumer<AppointmentProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading) {
+                if (provider.isLoading && !_isRefreshing) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -162,31 +218,56 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Clique no botão + para criar um novo',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
+                        const SizedBox(height: 16),
+                        // Botão para recarregar quando vazio
+                        ElevatedButton.icon(
+                          onPressed: _handleRefresh,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Recarregar'),
+                        ),
                       ],
                     ),
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.appointments.length,
-                  itemBuilder: (context, index) {
-                    final appointment = provider.appointments[index];
-                    return AppointmentCard(
-                      appointment: appointment,
-                      onEdit: () {
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.edit,
-                          arguments: {
-                            'id': appointment.id,
-                            'appointment': appointment,
-                          },
-                        );
-                      },
-                      onDelete: () => _handleDelete(appointment.id),
-                    );
+                return RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  color: Theme.of(context).primaryColor,
+                  backgroundColor: Colors.white,
+                  strokeWidth: 2,
+                  triggerMode: RefreshIndicatorTriggerMode.anywhere,
+                  edgeOffset: 0,
+                  displacement: 40,
+                  notificationPredicate: (notification) {
+                    // Permite refresh mesmo quando o scroll está no topo
+                    return _scrollController.position.extentBefore <= 0;
                   },
+                  child: ListView.builder(
+                    reverse: true,
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: provider.appointments.length,
+                    itemBuilder: (context, index) {
+                      final appointment = provider.appointments[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: AppointmentCard(
+                          appointment: appointment,
+                          onEdit: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.edit,
+                              arguments: {
+                                'id': appointment.id,
+                                'appointment': appointment,
+                              },
+                            );
+                          },
+                          onDelete: () => _handleDelete(appointment.id),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
