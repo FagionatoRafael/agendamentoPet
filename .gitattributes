@@ -1,0 +1,22 @@
+# Arquivos Dart
+*.dart linguist-language=Dart
+
+# Arquivos de configuração do Flutter
+pubspec.yaml linguist-language=YAML
+pubspec.lock linguist-language=YAML
+
+# Arquivos do Android (ignorar para estatísticas)
+android/** linguist-vendored
+*.xml linguist-vendored
+*.gradle linguist-vendored
+*.kt linguist-vendored
+
+# Arquivos do iOS (ignorar para estatísticas)
+ios/** linguist-vendored
+*.plist linguist-vendored
+*.storyboard linguist-vendored
+
+# Arquivos de build (ignorar)
+build/** linguist-vendored
+*.lock linguist-vendored
+*.log linguist-vendored

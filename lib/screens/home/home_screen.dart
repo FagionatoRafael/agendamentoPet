@@ -16,12 +16,15 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshing = false;
+  int _previousItemCount = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppointmentProvider>().listenToAppointments();
+      final provider = context.read<AppointmentProvider>();
+      provider.listenToAppointments();
+      _previousItemCount = provider.appointments.length;
     });
   }
 
@@ -30,6 +33,16 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   void _handleSearch(String query) {
@@ -111,17 +124,22 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Agendamentos'),
         actions: [
-          // Botão de refresh manual (opcional)
+          // Botão para scroll para o topo
+          IconButton(
+            icon: const Icon(Icons.vertical_align_top),
+            onPressed: _scrollToTop,
+            tooltip: 'Ir para o topo',
+          ),
           IconButton(
             icon: _isRefreshing
                 ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Icon(Icons.refresh),
             onPressed: _isRefreshing ? null : _handleRefresh,
           ),
@@ -147,12 +165,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _handleSearch('');
-                  },
-                )
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _handleSearch('');
+                        },
+                      )
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -164,6 +182,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Consumer<AppointmentProvider>(
               builder: (context, provider, child) {
+                final currentCount = provider.appointments.length;
+                if (currentCount > _previousItemCount &&
+                    !provider.isLoading &&
+                    !_isRefreshing) {
+                  _previousItemCount = currentCount;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToTop();
+                  });
+                }
+
                 if (provider.isLoading && !_isRefreshing) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -219,7 +247,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 16),
-                        // Botão para recarregar quando vazio
                         ElevatedButton.icon(
                           onPressed: _handleRefresh,
                           icon: const Icon(Icons.refresh),
@@ -239,11 +266,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   edgeOffset: 0,
                   displacement: 40,
                   notificationPredicate: (notification) {
-                    // Permite refresh mesmo quando o scroll está no topo
                     return _scrollController.position.extentBefore <= 0;
                   },
                   child: ListView.builder(
-                    reverse: true,
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: provider.appointments.length,
@@ -275,8 +300,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.add);
+        onPressed: () async {
+          final result = await Navigator.pushNamed(context, AppRoutes.add);
+          if (result == true && mounted) {
+            _scrollToTop();
+          }
         },
         icon: const Icon(Icons.add),
         label: const Text('Novo Agendamento'),
