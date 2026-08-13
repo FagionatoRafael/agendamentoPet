@@ -11,6 +11,7 @@ class Appointment {
   final DateTime createdAt;
   final String groomingType;
   final double totalPrice;
+  final bool isCompleted;
 
   Appointment({
     required this.id,
@@ -23,6 +24,7 @@ class Appointment {
     required this.createdAt,
     this.groomingType = '',
     this.totalPrice = 0.0,
+     this.isCompleted = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -36,6 +38,7 @@ class Appointment {
       'createdAt': createdAt,
       'groomingType': groomingType,
       'totalPrice': totalPrice,
+      'isCompleted': isCompleted,
     };
   }
 
@@ -51,6 +54,7 @@ class Appointment {
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       groomingType: json['groomingType'] ?? '',
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
+      isCompleted: json['isCompleted'] ?? false,
     );
   }
 
@@ -65,6 +69,7 @@ class Appointment {
     DateTime? createdAt,
     String? groomingType,
     double? totalPrice,
+    bool? isCompleted,
   }) {
     return Appointment(
       id: id ?? this.id,
@@ -77,6 +82,7 @@ class Appointment {
       createdAt: createdAt ?? this.createdAt,
       groomingType: groomingType ?? this.groomingType,
       totalPrice: totalPrice ?? this.totalPrice,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 

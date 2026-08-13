@@ -7,33 +7,50 @@ class AppointmentCard extends StatelessWidget {
   final Appointment appointment;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onComplete;
+  final VoidCallback? onReopen;
 
   const AppointmentCard({
     super.key,
     required this.appointment,
     required this.onEdit,
     required this.onDelete,
+    this.onComplete,
+    this.onReopen,
   });
 
-  // Método para determinar o status do agendamento
   AppointmentStatus _getStatus() {
+    if (appointment.isCompleted) {
+      return AppointmentStatus.completed;
+    }
+
     final now = DateTime.now();
     final appointmentTime = appointment.date;
     final difference = appointmentTime.difference(now);
 
     if (difference.inMinutes > 30) {
-      return AppointmentStatus.upcoming; // Verde - Longe do horário
+      return AppointmentStatus.upcoming;
     } else if (difference.inMinutes >= 0) {
-      return AppointmentStatus.soon; // Amarelo - Próximo do horário
+      return AppointmentStatus.soon;
     } else {
-      return AppointmentStatus.late; // Vermelho - Atrasado
+      return AppointmentStatus.late;
     }
   }
 
-  // Método para obter as cores baseado no status
   _StatusColors _getColors(BuildContext context) {
     final status = _getStatus();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (status == AppointmentStatus.completed) {
+      return _StatusColors(
+        backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+        borderColor: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+        textColor: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+        iconColor: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+        statusText: '✅ Finalizado',
+        statusColor: Colors.grey,
+      );
+    }
 
     switch (status) {
       case AppointmentStatus.upcoming:
@@ -63,10 +80,23 @@ class AppointmentCard extends StatelessWidget {
           statusText: '⚠️ Atrasado!',
           statusColor: Colors.red,
         );
+      default:
+        return _StatusColors(
+          backgroundColor: Colors.grey.shade100,
+          borderColor: Colors.grey.shade300,
+          textColor: Colors.grey.shade600,
+          iconColor: Colors.grey.shade500,
+          statusText: '',
+          statusColor: Colors.grey,
+        );
     }
   }
 
   String _getTimeRemaining() {
+    if (appointment.isCompleted) {
+      return '✅ Serviço concluído';
+    }
+
     final now = DateTime.now();
     final appointmentTime = appointment.date;
     final difference = appointmentTime.difference(now);
@@ -97,6 +127,7 @@ class AppointmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = _getColors(context);
     final status = _getStatus();
+    final isCompleted = appointment.isCompleted;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -114,15 +145,16 @@ class AppointmentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Linha do cabeçalho com status e tempo restante
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  backgroundColor: isCompleted 
+                      ? Colors.grey 
+                      : Theme.of(context).primaryColor.withOpacity(0.1),
                   child: Text(
                     appointment.tutorName[0].toUpperCase(),
                     style: TextStyle(
-                      color: Theme.of(context).primaryColor,
+                      color: isCompleted ? Colors.white : Theme.of(context).primaryColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -134,110 +166,170 @@ class AppointmentCard extends StatelessWidget {
                     children: [
                       Text(
                         appointment.tutorName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          color: isCompleted ? Colors.grey : null,
+                        ),
                       ),
                       Text(
                         'Pet: ${appointment.petName}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isCompleted ? Colors.grey : null,
+                        ),
                       ),
                     ],
                   ),
-                ),                
-                // Preço
+                ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: isCompleted ? Colors.grey.shade200 : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
+                    border: Border.all(
+                      color: isCompleted ? Colors.grey.shade300 : Colors.green.shade200,
+                    ),
                   ),
                   child: Text(
                     'R\$ ${appointment.totalPrice.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
+                      color: isCompleted ? Colors.grey : Colors.green.shade700,
                       fontSize: 14,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 PopupMenuButton(
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit),
-                          SizedBox(width: 8),
-                          Text('Editar'),
-                        ],
+                  itemBuilder: (context) {
+                    final items = <PopupMenuEntry>[];
+                    
+                    // Opção Editar (apenas para não finalizados)
+                    if (!isCompleted) {
+                      items.add(
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit),
+                              SizedBox(width: 8),
+                              Text('Editar'),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Opção Finalizar
+                    if (!isCompleted && onComplete != null) {
+                      items.add(
+                        const PopupMenuItem(
+                          value: 'complete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.check_circle, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Finalizar', style: TextStyle(color: Colors.green)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Opção Reabrir
+                    if (isCompleted && onReopen != null) {
+                      items.add(
+                        const PopupMenuItem(
+                          value: 'reopen',
+                          child: Row(
+                            children: [
+                              Icon(Icons.refresh, color: Colors.orange),
+                              SizedBox(width: 8),
+                              Text('Reabrir', style: TextStyle(color: Colors.orange)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Opção Excluir
+                    items.add(
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Excluir', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Excluir', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
+                    );
+
+                    return items;
+                  },
                   onSelected: (value) {
-                    if (value == 'edit') {
+                    if (value == 'edit' && !isCompleted) {
                       onEdit();
                     } else if (value == 'delete') {
                       onDelete();
+                    } else if (value == 'complete' && onComplete != null) {
+                      onComplete!();
+                    } else if (value == 'reopen' && onReopen != null) {
+                      onReopen!();
                     }
                   },
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
 
-            // Barra de tempo
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: colors.statusColor.withOpacity(0.1),
+                color: isCompleted 
+                    ? Colors.grey.shade200 
+                    : colors.statusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colors.statusColor.withOpacity(0.2)),
+                border: Border.all(
+                  color: isCompleted 
+                      ? Colors.grey.shade300 
+                      : colors.statusColor.withOpacity(0.2),
+                ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    status == AppointmentStatus.upcoming
-                        ? Icons.timer
-                        : status == AppointmentStatus.soon
-                            ? Icons.alarm
-                            : Icons.warning,
+                    isCompleted 
+                        ? Icons.check_circle
+                        : status == AppointmentStatus.upcoming
+                            ? Icons.timer
+                            : status == AppointmentStatus.soon
+                                ? Icons.alarm
+                                : Icons.warning,
                     size: 20,
-                    color: colors.iconColor,
+                    color: isCompleted ? Colors.grey : colors.iconColor,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _getTimeRemaining(),
+                      isCompleted ? '✅ Concluído' : _getTimeRemaining(),
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color: colors.textColor,
+                        color: isCompleted ? Colors.grey : colors.textColor,
                         fontSize: 14,
                       ),
                     ),
                   ),
-                  // Mostra a hora do agendamento
                   Row(
                     children: [
-                      Icon(Icons.access_time, size: 16, color: colors.iconColor),
+                      Icon(Icons.access_time, size: 16, color: isCompleted ? Colors.grey : colors.iconColor),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('HH:mm').format(appointment.date),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: colors.textColor,
+                          color: isCompleted ? Colors.grey : colors.textColor,
                           fontSize: 14,
                         ),
                       ),
@@ -248,43 +340,54 @@ class AppointmentCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Serviços
             Wrap(
               spacing: 8,
               children: [
                 if (appointment.bath)
                   Chip(
-                    label: const Text('Banho'),
-                    backgroundColor: Colors.blue.shade50,
-                    labelStyle: TextStyle(color: Colors.blue.shade700),
-                    avatar: Icon(Icons.shower, size: 16, color: Colors.blue.shade700),
+                    label: Text('Banho', style: TextStyle(
+                      color: isCompleted ? Colors.grey : Colors.blue.shade700,
+                    )),
+                    backgroundColor: isCompleted 
+                        ? Colors.grey.shade200 
+                        : Colors.blue.shade50,
+                    avatar: Icon(Icons.shower, size: 16, color: isCompleted ? Colors.grey : Colors.blue.shade700),
                   ),
                 if (appointment.grooming)
                   Chip(
-                    label: Text(Appointment.getGroomingTypeName(appointment.groomingType)),
-                    backgroundColor: Colors.green.shade50,
-                    labelStyle: TextStyle(color: Colors.green.shade700),
-                    avatar: Icon(Icons.cut, size: 16, color: Colors.green.shade700),
+                    label: Text(
+                      Appointment.getGroomingTypeName(appointment.groomingType),
+                      style: TextStyle(
+                        color: isCompleted ? Colors.grey : Colors.green.shade700,
+                      ),
+                    ),
+                    backgroundColor: isCompleted 
+                        ? Colors.grey.shade200 
+                        : Colors.green.shade50,
+                    avatar: Icon(Icons.cut, size: 16, color: isCompleted ? Colors.grey : Colors.green.shade700),
                   ),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Data e hora
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                Icon(Icons.calendar_today, size: 16, color: isCompleted ? Colors.grey : Colors.grey.shade600),
                 const SizedBox(width: 4),
                 Text(
                   DateFormat('dd/MM/yyyy').format(appointment.date),
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: isCompleted ? Colors.grey : null,
+                  ),
                 ),
                 const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                Icon(Icons.access_time, size: 16, color: isCompleted ? Colors.grey : Colors.grey.shade600),
                 const SizedBox(width: 4),
                 Text(
                   DateFormat('HH:mm').format(appointment.date),
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: isCompleted ? Colors.grey : null,
+                  ),
                 ),
               ],
             ),
@@ -292,7 +395,9 @@ class AppointmentCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 appointment.notes,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isCompleted ? Colors.grey : null,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -303,7 +408,7 @@ class AppointmentCard extends StatelessWidget {
     );
   }
 }
-// Classe para armazenar as cores do status
+
 class _StatusColors {
   final Color backgroundColor;
   final Color borderColor;

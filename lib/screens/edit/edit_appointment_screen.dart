@@ -125,6 +125,7 @@ class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
         totalPrice: _calculateTotalPrice(),
         date: dateTime,
         notes: _notesController.text.trim(),
+        isCompleted: false
       );
 
       final success = await context.read<AppointmentProvider>().updateAppointment(updatedAppointment);

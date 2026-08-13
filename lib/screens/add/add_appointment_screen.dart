@@ -106,6 +106,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
         date: dateTime,
         notes: _notesController.text.trim(),
         createdAt: DateTime.now(),
+        isCompleted: false
       );
 
       final success = await context.read<AppointmentProvider>().addAppointment(
