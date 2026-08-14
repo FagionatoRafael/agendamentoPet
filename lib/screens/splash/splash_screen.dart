@@ -37,17 +37,13 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.pets,
-              size: 80,
-              color: Theme.of(context).primaryColor,
-            ),
+            Icon(Icons.pets, size: 80, color: Theme.of(context).primaryColor),
             const SizedBox(height: 20),
             Text(
-              'Pet Grooming',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              'Agendamento Pet',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             const CircularProgressIndicator(),

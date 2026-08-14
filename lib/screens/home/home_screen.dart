@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/appointment_provider.dart';
 import '../../../core/routes.dart';
 import '../../../widgets/appointment_card.dart';
+import '../../models/appointment.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,15 +14,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshing = false;
   int _previousItemCount = 0;
 
-  // Controle de abas
   late TabController _tabController;
   int _currentTabIndex = 0;
+
+  DateTime _selectedDate = DateTime.now();
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _dayFormat = DateFormat('EEEE');
 
   @override
   void initState() {
@@ -121,7 +127,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
 
     if (confirm == true) {
-      final success = await context.read<AppointmentProvider>().deleteAppointment(id);
+      final success = await context
+          .read<AppointmentProvider>()
+          .deleteAppointment(id);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Agendamento excluído com sucesso!')),
@@ -130,7 +138,40 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  // Método para finalizar agendamento
+  void _nextDay() {
+    setState(() {
+      _selectedDate = _selectedDate.add(const Duration(days: 1));
+    });
+  }
+
+  void _previousDay() {
+    setState(() {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+    });
+  }
+
+  void _goToToday() {
+    setState(() {
+      _selectedDate = DateTime.now();
+    });
+  }
+
+  List<Appointment> _filterByDate(List<Appointment> appointments) {
+    return appointments.where((appointment) {
+      final appointmentDate = DateTime(
+        appointment.date.year,
+        appointment.date.month,
+        appointment.date.day,
+      );
+      final selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      return appointmentDate == selectedDate;
+    }).toList();
+  }
+
   void _handleComplete(String id) {
     showDialog(
       context: context,
@@ -144,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           TextButton(
             onPressed: () {
-              var completed = context.read<AppointmentProvider>().completeAppointment(id);
+              context.read<AppointmentProvider>().completeAppointment(id);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -161,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  // Método para reabrir agendamento finalizado
   void _handleReopen(String id) {
     showDialog(
       context: context,
@@ -192,27 +232,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  bool _hasAppointmentsOnDate(List<Appointment> appointments) {
+    return appointments.any((appointment) {
+      final appointmentDate = DateTime(
+        appointment.date.year,
+        appointment.date.month,
+        appointment.date.day,
+      );
+      final selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      return appointmentDate == selectedDate;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agendamentos'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.pending_actions),
-              text: 'Agendados',
-            ),
-            Tab(
-              icon: Icon(Icons.check_circle),
-              text: 'Finalizados',
-            ),
-          ],
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.black,
-          indicatorWeight: 3,
+        // 🆕 Define a altura da toolbar
+        toolbarHeight: 56,
+        // 🆕 Usa PreferredSize para o TabBar
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.pending_actions), text: 'Agendados'),
+              Tab(icon: Icon(Icons.check_circle), text: 'Finalizados'),
+            ],
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.black,
+            indicatorWeight: 3,
+          ),
         ),
         actions: [
           IconButton(
@@ -246,6 +302,80 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       body: Column(
         children: [
+          // Seletor de data
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, size: 32),
+                  onPressed: _previousDay,
+                  tooltip: 'Dia anterior',
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onDoubleTap: _goToToday,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _dateFormat.format(_selectedDate),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        Consumer<AppointmentProvider>(
+                          builder: (context, provider, child) {
+                            final isActiveTab = _currentTabIndex == 0;
+                            final appointments = isActiveTab
+                                ? provider.activeAppointments
+                                : provider.completedAppointments;
+                            final hasAppointments = _hasAppointmentsOnDate(
+                              appointments,
+                            );
+
+                            return hasAppointments
+                                ? Container(
+                                    margin: const EdgeInsets.only(top: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${appointments.where((a) => DateTime(a.date.year, a.date.month, a.date.day) == DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)).length} agendamentos',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, size: 32),
+                  onPressed: _nextDay,
+                  tooltip: 'Próximo dia',
+                ),
+              ],
+            ),
+          ),
+          // Campo de busca
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -272,13 +402,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Expanded(
             child: Consumer<AppointmentProvider>(
               builder: (context, provider, child) {
-                // Determina qual lista mostrar baseado na aba selecionada
                 final isActiveTab = _currentTabIndex == 0;
-                final appointments = isActiveTab 
-                    ? provider.activeAppointments 
+                final allAppointments = isActiveTab
+                    ? provider.activeAppointments
                     : provider.completedAppointments;
 
-                final currentCount = appointments.length;
+                final appointments = _filterByDate(allAppointments);
 
                 if (provider.isLoading && !_isRefreshing) {
                   return const Center(child: CircularProgressIndicator());
@@ -320,34 +449,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          isActiveTab 
-                              ? Icons.pending_actions 
-                              : Icons.check_circle,
+                          Icons.calendar_today,
                           size: 60,
                           color: Colors.grey.shade400,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          isActiveTab 
-                              ? 'Nenhum agendamento pendente' 
-                              : 'Nenhum agendamento finalizado',
+                          'Nenhum agendamento para esta data',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isActiveTab 
-                              ? 'Clique no botão + para criar um novo' 
-                              : 'Finalize um agendamento para aparecer aqui',
+                          _dateFormat.format(_selectedDate),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        if (isActiveTab) ...[
-                          const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                        if (_selectedDate != DateTime.now())
                           ElevatedButton.icon(
-                            onPressed: _handleRefresh,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Recarregar'),
+                            onPressed: _goToToday,
+                            icon: const Icon(Icons.today),
+                            label: const Text('Ir para hoje'),
                           ),
-                        ],
                       ],
                     ),
                   );
@@ -382,10 +504,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             }
                           },
                           onDelete: () => _handleDelete(appointment.id),
-                          onComplete: appointment.isCompleted 
-                              ? null 
+                          onComplete: appointment.isCompleted
+                              ? null
                               : () => _handleComplete(appointment.id),
-                          onReopen: appointment.isCompleted 
+                          onReopen: appointment.isCompleted
                               ? () => _handleReopen(appointment.id)
                               : null,
                         ),
