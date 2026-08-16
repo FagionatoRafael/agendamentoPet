@@ -248,14 +248,26 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agendamentos'),
-        // 🆕 Define a altura da toolbar
         toolbarHeight: 56,
-        // 🆕 Usa PreferredSize para o TabBar
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: TabBar(
@@ -318,9 +330,9 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 Expanded(
                   child: GestureDetector(
-                    onDoubleTap: _goToToday,
+                    onTap: () => _selectDate(),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.max,
                       children: [
                         Text(
                           _dateFormat.format(_selectedDate),
@@ -329,7 +341,6 @@ class _HomeScreenState extends State<HomeScreen>
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         Consumer<AppointmentProvider>(
                           builder: (context, provider, child) {
                             final isActiveTab = _currentTabIndex == 0;
