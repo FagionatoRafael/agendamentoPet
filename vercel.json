@@ -1,0 +1,14 @@
+{
+  "buildCommand": "flutter build web --release",
+  "outputDirectory": "build/web",
+  "devCommand": "flutter run -d web-server",
+  "installCommand": "flutter pub get",
+  "framework": "other",
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "env": {
+    "FLUTTER_ROOT": "/vercel/flutter"
+  }
+}
