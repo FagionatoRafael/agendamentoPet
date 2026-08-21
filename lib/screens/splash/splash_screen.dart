@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/routes.dart';
 import '../../../providers/auth_provider.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,6 +26,10 @@ class _SplashScreenState extends State<SplashScreen> {
     final user = await authProvider.user.first;
 
     if (user != null) {
+      if (kIsWeb) {
+        Navigator.pushReplacementNamed(context, AppRoutes.homeWeb);
+        return;
+      }
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } else {
       Navigator.pushReplacementNamed(context, AppRoutes.login);

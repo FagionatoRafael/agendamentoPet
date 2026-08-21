@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'core/config.dart';
 
 class DefaultFirebaseOptions {
@@ -22,12 +23,12 @@ class DefaultFirebaseOptions {
   }
 
   static final FirebaseOptions web = FirebaseOptions(
-    apiKey: FirebaseConfig.apiKey,
-    appId: FirebaseConfig.appId,
-    messagingSenderId: FirebaseConfig.messagingSenderId,
-    projectId: FirebaseConfig.projectId,
-    authDomain: FirebaseConfig.authDomain,
-    storageBucket: FirebaseConfig.storageBucket,
+    apiKey: FirebaseConfig.apiKeyWeb,
+    authDomain: FirebaseConfig.authDomainWeb,
+    projectId: FirebaseConfig.projectIdWeb,
+    storageBucket: FirebaseConfig.storageBucketWeb,
+    messagingSenderId: FirebaseConfig.messagingSenderIdWeb,
+    appId: FirebaseConfig.appIdWeb,
   );
 
   static final FirebaseOptions android = FirebaseOptions(

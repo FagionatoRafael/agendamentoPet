@@ -12,10 +12,10 @@ class AppointmentProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-   List<Appointment> get activeAppointments => 
+  List<Appointment> get activeAppointments =>
       _appointments.where((a) => !a.isCompleted).toList();
-  
-  List<Appointment> get completedAppointments => 
+
+  List<Appointment> get completedAppointments =>
       _appointments.where((a) => a.isCompleted).toList();
 
   void listenToAppointments() {
@@ -23,7 +23,7 @@ class AppointmentProvider extends ChangeNotifier {
     notifyListeners();
 
     _service.getAppointments().listen(
-          (appointments) {
+      (appointments) {
         _appointments = appointments;
         _isLoading = false;
         _error = null;
@@ -46,19 +46,21 @@ class AppointmentProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _service.searchAppointments(query).listen(
+    _service
+        .searchAppointments(query)
+        .listen(
           (appointments) {
-        _appointments = appointments;
-        _isLoading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (error) {
-        _error = error.toString();
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+            _appointments = appointments;
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (error) {
+            _error = error.toString();
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<bool> addAppointment(Appointment appointment) async {
@@ -93,25 +95,29 @@ class AppointmentProvider extends ChangeNotifier {
       return false;
     }
   }
+
   Future<void> refreshAppointments() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _service.getAppointments().first.then((appointments) {
-        _appointments = appointments;
-        _isLoading = false;
-        _error = null;
-        notifyListeners();
-      }).catchError((error) {
-        _error = error.toString();
-        _isLoading = false;
-        notifyListeners();
-        throw Exception('Falha ao atualizar: $error');
-      });
+      await _service
+          .getAppointments()
+          .first
+          .then((appointments) {
+            _appointments = appointments;
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          })
+          .catchError((error) {
+            _error = error.toString();
+            _isLoading = false;
+            notifyListeners();
+            throw Exception('Falha ao atualizar: $error');
+          });
     } catch (e) {
-      // Re-lança para tratamento na UI
       rethrow;
     }
   }
@@ -119,16 +125,16 @@ class AppointmentProvider extends ChangeNotifier {
   Future<bool> completeAppointment(String id) async {
     final appointment = _appointments.firstWhere((a) => a.id == id);
     final updatedAppointment = appointment.copyWith(
-        tutorName: appointment.tutorName,
-        petName: appointment.petName,
-        bath: appointment.bath,
-        grooming: appointment.grooming,
-        groomingType: appointment.groomingType,
-        totalPrice: appointment.totalPrice,
-        date: appointment.date,
-        notes: appointment.notes,
-        isCompleted: true
-      );
+      tutorName: appointment.tutorName,
+      petName: appointment.petName,
+      bath: appointment.bath,
+      grooming: appointment.grooming,
+      groomingType: appointment.groomingType,
+      totalPrice: appointment.totalPrice,
+      date: appointment.date,
+      notes: appointment.notes,
+      isCompleted: true,
+    );
     try {
       await _service.updateAppointment(updatedAppointment);
       notifyListeners();
@@ -143,16 +149,16 @@ class AppointmentProvider extends ChangeNotifier {
   Future<bool> reopenAppointment(String id) async {
     final appointment = _appointments.firstWhere((a) => a.id == id);
     final updatedAppointment = appointment.copyWith(
-        tutorName: appointment.tutorName,
-        petName: appointment.petName,
-        bath: appointment.bath,
-        grooming: appointment.grooming,
-        groomingType: appointment.groomingType,
-        totalPrice: appointment.totalPrice,
-        date: appointment.date,
-        notes: appointment.notes,
-        isCompleted: false
-      );
+      tutorName: appointment.tutorName,
+      petName: appointment.petName,
+      bath: appointment.bath,
+      grooming: appointment.grooming,
+      groomingType: appointment.groomingType,
+      totalPrice: appointment.totalPrice,
+      date: appointment.date,
+      notes: appointment.notes,
+      isCompleted: false,
+    );
     try {
       await _service.updateAppointment(updatedAppointment);
       notifyListeners();

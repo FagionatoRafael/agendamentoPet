@@ -4,6 +4,8 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/routes.dart';
 import '../../../widgets/loading.dart';
 import '../../../utils/validators.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +36,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (authProvider.error == null && mounted) {
+        if (kIsWeb) {
+          Navigator.pushReplacementNamed(context, AppRoutes.homeWeb);
+          return;
+        }
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     }
@@ -45,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
           if (authProvider.isLoading) return Loading();
-      
+
           return Padding(
             padding: const EdgeInsets.all(24.0),
             child: Form(
@@ -54,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: 20,),
+                    SizedBox(height: 20),
                     Icon(
                       Icons.pets,
                       size: 80,
@@ -117,17 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : _handleLogin,
+                        onPressed: authProvider.isLoading ? null : _handleLogin,
                         child: const Text('Entrar'),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Demo: demo@email.com / 123456',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
                   ],
                 ),
               ),

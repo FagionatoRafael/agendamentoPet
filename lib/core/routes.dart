@@ -1,3 +1,4 @@
+import 'package:agendamento_pet/screens/home/home_screen_web.dart';
 import 'package:flutter/material.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/login/login_screen.dart';
@@ -9,6 +10,7 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String home = '/home';
+  static const String homeWeb = '/home-web';
   static const String add = '/add';
   static const String edit = '/edit';
   static const String details = '/details';
@@ -21,6 +23,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
+      case homeWeb:
+        return MaterialPageRoute(builder: (_) => const HomeScreenWeb());
       case add:
         return MaterialPageRoute(builder: (_) => const AddAppointmentScreen());
       case edit:
